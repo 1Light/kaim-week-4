@@ -1,0 +1,44 @@
+# Data Manipulation
+pandas==1.5.3
+numpy==1.24.3
+
+# Data Visualization
+matplotlib==3.7.1
+seaborn==0.12.2
+plotly==5.15.0  # Optional, for interactive plots
+
+# Machine Learning
+scikit-learn==1.2.2
+xgboost==1.7.6  # For advanced models
+
+# Deep Learning
+tensorflow==2.13.0  # Optional, if planning to use TensorFlow
+keras==2.13.0       # Optional, if planning to use Keras
+torch==2.0.1+cu118  # Optional, if planning to use PyTorch (requires CUDA-compatible hardware)
+
+# Logging
+loguru==0.7.0
+
+# Web Framework (for serving predictions)
+flask==2.3.2
+flask-restful==0.4.0
+
+# Utility Libraries
+scipy==1.11.3
+statsmodels==0.14.0
+jupyterlab==4.0.4  # For running notebooks
+ipykernel==6.26.0  # Kernel support for Jupyter
+joblib==1.3.2      # For parallel processing
+tqdm==4.65.0       # For progress bars
+
+# File Handling and Other
+openpyxl==3.1.2    # If working with Excel files
+python-dotenv==1.0.0  # For managing environment variables
+
+# Unit Testing
+pytest==7.4.2
+pytest-cov==4.1.0
+
+# Linting and Formatting (Optional)
+flake8==6.1.0
+black==23.7.0
