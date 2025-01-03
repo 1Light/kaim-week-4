@@ -1,23 +1,5 @@
-# Data Manipulation
-pandas==1.5.3
-numpy==1.24.3
-
-# Data Visualization
-matplotlib==3.7.1
-seaborn==0.12.2
-plotly==5.15.0  # Optional, for interactive plots
-
-# Machine Learning
-scikit-learn==1.2.2
-xgboost==1.7.6  # For advanced models
-
-# Logging
-loguru==0.7.0
-
-# Web Framework (for serving predictions)
-flask==2.3.2
-
-# Utility Libraries
-scipy==1.11.3
-
-
+pandas
+matplotlib
+seaborn
+scikit-learn
+notebook
