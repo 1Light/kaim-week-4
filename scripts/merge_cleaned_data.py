@@ -17,6 +17,10 @@ class DataMerger:
         self.train_data = None
         self.store_data = None
 
+        # Ensure the cleaned_data directory exists
+        if not os.path.exists(self.cleaned_data_folder):
+            os.makedirs(self.cleaned_data_folder)
+
     def load_data(self):
         """
         Loads the data from input CSV files into pandas DataFrames.
@@ -56,6 +60,8 @@ class DataMerger:
         """
         if merged_data is not None:
             try:
+                # Ensure the directory exists before saving the file
+                os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
                 merged_data.to_csv(self.output_file, index=False)
                 print(f"Merged data saved to {self.output_file}")
             except Exception as e:
