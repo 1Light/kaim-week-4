@@ -56,6 +56,9 @@ class DataMerger:
         """
         if merged_data is not None:
             try:
+                # Ensure the directory exists before saving the file (only if not already there)
+                if not os.path.exists(os.path.dirname(self.output_file)):
+                    os.makedirs(os.path.dirname(self.output_file))
                 merged_data.to_csv(self.output_file, index=False)
                 print(f"Merged data saved to {self.output_file}")
             except Exception as e:
