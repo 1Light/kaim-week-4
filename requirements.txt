@@ -3,3 +3,8 @@ matplotlib
 seaborn
 scikit-learn
 notebook
+statsmodels
+tensorflow
+Django
+djangorestframework
+joblib
