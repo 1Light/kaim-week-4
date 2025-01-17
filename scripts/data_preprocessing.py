@@ -1,197 +1,157 @@
-import os
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-class DataCleaner:
-    def __init__(self, base_dir, input_filenames=["train.csv", "store.csv"], output_filename="cleaned_ml.csv"):
+class DataPreprocessor:
+    def __init__(self, train_path, test_path, test_id):
         """
-        Initializes the DataCleaner object with paths for input and output files.
+        Initialize the DataPreprocessor with paths to the training and testing datasets.
         
-        :param base_dir: The base directory for relative paths.
-        :param input_filenames: List of input CSV files to load.
-        :param output_filename: The name of the output CSV file after cleaning.
+        Parameters
+        ----------
+        train_path : str
+            Path to the training dataset.
+        test_path : str
+            Path to the testing dataset.
+        test_id : str
+            Path to the CSV file containing test IDs.
         """
-        self.base_dir = os.path.abspath(base_dir)
-        self.data_folder = os.path.join(self.base_dir, "../data")
-        self.cleaned_data_folder = os.path.join(self.base_dir, "../cleaned_data")  # Define cleaned data folder
-        self.input_files = [os.path.join(self.data_folder, filename) for filename in input_filenames]
-        self.output_file = os.path.join(self.cleaned_data_folder, output_filename)
-        self.train_data = None
-        self.store_data = None
-
-    def load_data(self):
-        """
-        Loads the data from input CSV files into pandas DataFrames.
+        # Define the data types for specific columns
+        dtype_dict = {
+            'Store': int,
+            'Sales': float,
+            'Open': float,
+            'StateHoliday': str,
+            'SchoolHoliday': float,
+            'Promo': float
+        }
         
-        :return: List of pandas DataFrames loaded from the files.
-        """
-        try:
-            print(f"Loading data from {self.input_files[0]} and {self.input_files[1]}...")
-            self.train_data = pd.read_csv(self.input_files[0], low_memory=False)
-            self.store_data = pd.read_csv(self.input_files[1], low_memory=False)
-            print("Data loaded successfully!")
-        except FileNotFoundError as e:
-            print(f"Error: {e}")
-        except Exception as e:
-            print(f"An error occurred while loading data: {e}")
-
-    def assess_data_quality(self):
-        """
-        Performs a data quality assessment, including checking for missing values and empty columns.
-        """
-        if self.train_data is not None:
-            print("\nTrain Data Quality Assessment: Checking for missing values...")
-            self.check_missing_values(self.train_data, "Train Data")
-        if self.store_data is not None:
-            print("\nStore Data Quality Assessment: Checking for missing values...")
-            self.check_missing_values(self.store_data, "Store Data")
-
-    def check_missing_values(self, data, dataset_name):
-        """
-        Checks and prints the missing values for each column in a dataset.
+        # Load training and test datasets
+        self.train_data = pd.read_csv(train_path, dtype=dtype_dict, low_memory=False)
+        self.test_data = pd.read_csv(test_path, dtype=dtype_dict, low_memory=False)
+        self.test_id = pd.read_csv(test_id, dtype=dtype_dict, low_memory=False)
+        self.test_data['Id'] = self.test_id['Id']
         
-        :param data: The dataset (pandas DataFrame) to check.
-        :param dataset_name: The name of the dataset for identification in the output.
-        """
-        print(f"\nMissing values assessment for {dataset_name}:")
-        missing_data = data.isnull().sum()
-        missing_percentage = (missing_data / len(data)) * 100
-        missing_summary = pd.DataFrame({'Missing Values': missing_data, 'Percentage': missing_percentage})
-        missing_summary = missing_summary[missing_summary['Missing Values'] > 0]
+        # Filter only open stores in the training dataset
+        self.train_data = self.train_data[self.train_data['Open'] == 1]
         
-        if not missing_summary.empty:
-            print(f"\nColumns with Missing Data in {dataset_name}:")
-            print(missing_summary)
-        else:
-            print(f"\nNo missing values detected in {dataset_name}.")
-
-    def handle_missing_values(self):
-        """
-        Handles missing values in both the Train and Store datasets.
-        """
-        # Handle missing values in the Store dataset
-        if self.store_data is not None:
-            self.store_data = self.handle_store_missing_values(self.store_data)
-
-    def handle_store_missing_values(self, store_data):
-        """
-        Handle missing values in the Store dataset according to specified rules.
+        # Create copies of the dataframes for processing
+        self.train_df = self.train_data.copy()
+        self.test_df = self.test_data.copy()
         
-        :param store_data: The Store dataset (pandas DataFrame).
-        :return: Store dataset with missing values handled.
-        """
-        # Fill 'CompetitionDistance' with the median
-        store_data['CompetitionDistance'] = store_data['CompetitionDistance'].fillna(store_data['CompetitionDistance'].median())
-
-        # Fill 'PromoInterval' with the mode
-        store_data['PromoInterval'] = store_data['PromoInterval'].fillna(store_data['PromoInterval'].mode()[0])
-
-        # Fill 'CompetitionOpenSinceMonth' with forward fill
-        store_data['CompetitionOpenSinceMonth'] = store_data['CompetitionOpenSinceMonth'].ffill()
-
-        # Fill 'CompetitionOpenSinceYear' with backward fill
-        store_data['CompetitionOpenSinceYear'] = store_data['CompetitionOpenSinceYear'].bfill()
-
-        # Fill 'Promo2SinceWeek' with the mean value
-        store_data['Promo2SinceWeek'] = store_data['Promo2SinceWeek'].fillna(store_data['Promo2SinceWeek'].mean())
-
-        # Fill 'Promo2SinceYear' with the mean value
-        store_data['Promo2SinceYear'] = store_data['Promo2SinceYear'].fillna(store_data['Promo2SinceYear'].mean())
-
-        return store_data
+        # Initialize the scaler for numerical feature scaling
+        self.scaler = StandardScaler()
 
     def clean_data(self):
-        """
-        Cleans the data by converting data types, filling missing values, and standardizing values.
-        """
-        if self.train_data is not None and self.store_data is not None:
-            # Merge train_data and store_data on the 'Store' column (adjust as needed)
-            self.merged_data = pd.merge(self.train_data, self.store_data, on="Store", how="left")
-            
-            # Handle specific columns for the merged dataset
-            if 'Store' in self.merged_data.columns:
-                self.merged_data['Store'] = pd.to_numeric(self.merged_data['Store'], errors='coerce')
+        """Clean the datasets by resetting indexes and dropping unnecessary columns."""
+        self.train_df.reset_index(drop=True, inplace=True)
+        self.test_df.reset_index(drop=True, inplace=True)
 
-            if 'DayOfWeek' in self.merged_data.columns:
-                self.merged_data['DayOfWeek'] = pd.to_numeric(self.merged_data['DayOfWeek'], errors='coerce')
+        # Drop 'Customers' from the train dataset
+        self.train_df.drop(columns=['Customers'], errors='ignore', inplace=True)
+        
+        # Drop 'Id' only from the test dataset
+        self.test_df.drop(columns=['Id'], errors='ignore', inplace=True)
 
-            if 'Date' in self.merged_data.columns:
-                self.merged_data['Date'] = pd.to_datetime(self.merged_data['Date'], errors='coerce')
-
-            if 'Sales' in self.merged_data.columns:
-                self.merged_data['Sales'] = pd.to_numeric(self.merged_data['Sales'], errors='coerce')
-
-            if 'Customers' in self.merged_data.columns:
-                self.merged_data['Customers'] = pd.to_numeric(self.merged_data['Customers'], errors='coerce')
-
-            # Convert binary columns (Open, Promo, SchoolHoliday)
-            for col in ['Open', 'Promo', 'SchoolHoliday']:
-                if col in self.merged_data.columns:
-                    self.merged_data[col] = self.merged_data[col].astype(bool)
-
-            # Adjust StateHoliday
-            if 'StateHoliday' in self.merged_data.columns:
-                self.merged_data['StateHoliday'] = self.merged_data['StateHoliday'].replace({'a': 0, 0: 0, 1: 1}).astype(bool)
-
-            # Handle store dataset specific columns
-            if 'StoreType' in self.merged_data.columns:
-                self.merged_data['StoreType'] = self.merged_data['StoreType'].str.strip().str.lower()
-
-            if 'Assortment' in self.merged_data.columns:
-                self.merged_data['Assortment'] = self.merged_data['Assortment'].str.strip().str.lower()
-
-            # Correct scaling part: columns to be scaled
-            columns_to_scale = ['Sales', 'Customers', 'CompetitionDistance', 'CompetitionOpenSinceMonth', 'CompetitionOpenSinceYear', 'Promo2SinceWeek', 'Promo2SinceYear']
-
-            # Check if all columns to scale are in the dataset
-            missing_columns = [col for col in columns_to_scale if col not in self.merged_data.columns]
-            if missing_columns:
-                print(f"Warning: The following columns are missing from the dataset and will not be scaled: {missing_columns}")
-
-            # Apply scaling to the columns that exist
-            existing_columns_to_scale = [col for col in columns_to_scale if col in self.merged_data.columns]
-
-            if existing_columns_to_scale:
-                scaler = StandardScaler()
-                self.merged_data[existing_columns_to_scale] = scaler.fit_transform(self.merged_data[existing_columns_to_scale])
-                print(f"Scaled columns: {existing_columns_to_scale}")
-
-            # If needed, split the merged data back into separate datasets
-            self.train_data = self.merged_data.drop(columns=self.store_data.columns, errors='ignore')  # Remove store columns from train data
-            self.store_data = self.merged_data[self.store_data.columns]  # Retain store columns for store data
-
-    def save_cleaned_data(self):
-        """
-        Saves the cleaned data to the output CSV file, including the merged data as 'primary_data.csv'.
-        """
-        if self.train_data is not None and self.store_data is not None:
-            # Create the cleaned_data folder if it doesn't exist
-            if not os.path.exists(self.cleaned_data_folder):
-                os.makedirs(self.cleaned_data_folder)
-
-            # Save the cleaned data as separate CSV files in the cleaned_data folder
-            self.train_data.to_csv(os.path.join(self.cleaned_data_folder, "cleaned_train.csv"), index=False)
-            self.store_data.to_csv(os.path.join(self.cleaned_data_folder, "cleaned_store.csv"), index=False)
-
-            # Save the merged data (primary data) as 'primary_data.csv'
-            self.merged_data.to_csv(os.path.join(self.cleaned_data_folder, "primary_data.csv"), index=False)
-            
-            print(f"Cleaned data saved to {self.cleaned_data_folder}!")
-
-    def process(self):
-        """
-        Orchestrates the entire process of loading, assessing, cleaning, and saving the data.
-        """
-        self.load_data()
-        self.assess_data_quality()
+        # Handle missing values
         self.handle_missing_values()
+
+    def handle_missing_values(self):
+        """Handle missing values consistently across train and test datasets."""
+        combined_df = pd.concat([self.train_df, self.test_df], axis=0, keys=['train', 'test'])
+
+        # Fill missing values for 'Open' with the mode
+        combined_df.fillna({'Open': combined_df['Open'].mode()[0]}, inplace=True)
+
+        # Split back into train and test datasets
+        self.train_df = combined_df.xs('train')
+        self.test_df = combined_df.xs('test')
+
+    def extract_datetime_features(self):
+        """Extract datetime features such as weekday, month, and holiday-related variables."""
+        for df in [self.train_df, self.test_df]:
+            df['Date'] = pd.to_datetime(df['Date'])
+            
+            # Extract features
+            df['Weekday'] = df['Date'].dt.weekday  # Weekday (0=Monday, 6=Sunday)
+            df['IsWeekend'] = df['Weekday'].apply(lambda x: 1 if x >= 5 else 0)
+            df['Month'] = df['Date'].dt.month
+            # df['Year'] = df['Date'].dt.year # Least important
+            
+            # Calculate days to/from a specific holiday (e.g., Christmas)
+            df['DaysToHoliday'] = (pd.to_datetime('2023-12-25') - df['Date']).dt.days
+            df['DaysAfterHoliday'] = (df['Date'] - pd.to_datetime('2023-12-25')).dt.days
+            
+            # Identify periods within the month
+            df['IsBeginningOfMonth'] = (df['Date'].dt.day <= 7).astype(int)
+            df['IsMidMonth'] = ((df['Date'].dt.day > 7) & (df['Date'].dt.day <= 21)).astype(int)
+            df['IsEndOfMonth'] = (df['Date'].dt.day > 21).astype(int)
+            
+            # Drop unnecessary columns
+            df.drop(columns=['Date', 'Dataset', 'CompetitionOpenSinceMonth', 'CompetitionOpenSinceYear'], inplace=True)
+
+    def feature_engineering(self):
+        """Create new features based on existing data, such as holiday flags and promo duration."""
+        for df in [self.train_df, self.test_df]:
+            df['IsHoliday'] = df.apply(lambda x: 1 if (x['StateHoliday'] != '0' or x['SchoolHoliday'] == 1) else 0, axis=1)
+            df['Promo_duration'] = df.groupby('Store')['Promo'].cumsum()
+
+    def encode_categorical_data(self):
+        """Encode categorical variables using label encoding."""
+        label_cols = ['StateHoliday', 'StoreType', 'Assortment']
+        label_encoder = LabelEncoder()
+
+        for col in label_cols:
+            self.train_df[col] = label_encoder.fit_transform(self.train_df[col].astype(str))
+            self.test_df[col] = label_encoder.transform(self.test_df[col].astype(str))  # Use transform on test
+
+    # def scale_numeric_features(self):
+    #     """Scale numeric features consistently across both datasets."""
+    #     # Drop 'Sales' from test if it exists
+    #     self.test_df.drop(columns=['Sales'], errors='ignore', inplace=True)
+
+    #     # Identify and scale common numeric columns
+    #     num_cols_train = self.train_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    #     num_cols_test = self.test_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+
+    #     common_cols = [col for col in num_cols_train if col in num_cols_test]
+
+    #     # Fit scaler on training data and transform both train and test data
+    #     self.train_df[common_cols] = self.scaler.fit_transform(self.train_df[common_cols])
+    #     self.test_df[common_cols] = self.scaler.transform(self.test_df[common_cols])
+
+    def preprocess(self):
+        """Execute the full preprocessing pipeline."""
+        print("Cleaning data...")
         self.clean_data()
-        self.save_cleaned_data()
 
-# Example usage of the DataCleaner class
-if __name__ == "__main__":
-    # Initialize the DataCleaner object
-    cleaner = DataCleaner(base_dir=os.path.dirname(__file__))
+        print("Extracting datetime features...")
+        self.extract_datetime_features()
 
-    # Perform the data processing
-    cleaner.process()
+        print("Performing feature engineering...")
+        self.feature_engineering()
+
+        print("Encoding categorical data...")
+        self.encode_categorical_data()
+
+        # print("Scaling numeric features...")
+        # self.scale_numeric_features()
+        # Drop 'Sales' from test if it exists
+        self.test_df.drop(columns=['Sales'], errors='ignore', inplace=True)
+    
+        # Set 'Id' as the index for test data
+        self.test_df.reset_index(drop=True, inplace=True)
+        self.test_df.set_index(self.test_data['Id'], inplace=True)
+        
+        # Set 'Date' as index for train data
+        self.train_df.reset_index(drop=True, inplace=True)
+        self.train_df.set_index(self.train_data['Date'], inplace=True)
+        
+        print("Preprocessing complete.")
+        return self.train_df, self.test_df
+
+    def save_data(self, train_file='../data/pre_processed/train_processed.csv', test_file='../data/pre_processed/test_processed.csv'):
+        """Save the preprocessed train and test data to CSV files."""
+        self.train_df.to_csv(train_file, index=True)
+        self.test_df.to_csv(test_file, index=True)
+        print(f"Processed data saved to {train_file} and {test_file}.")
