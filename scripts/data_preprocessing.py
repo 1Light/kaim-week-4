@@ -5,8 +5,6 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 class DataPreprocessor:
     def __init__(self, train_path, test_path, test_id):
         """
-        Initialize the DataPreprocessor with paths to the training and testing datasets.
-        
         Parameters
         ----------
         train_path : str
