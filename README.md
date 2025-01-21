@@ -1,7 +1,7 @@
 # Rossmann Pharmaceuticals Sales Forecasting
 
 ## Project Overview
-This project aims to build an end-to-end machine learning solution for forecasting sales at Rossmann Pharmaceuticals stores across various cities. The finance team requires a tool to predict sales six weeks ahead, enabling better planning and resource allocation. The solution will analyze various factors such as promotions, competition, holidays, and seasonality to provide accurate forecasts.
+It project aims to build an end-to-end machine learning solution for forecasting sales at Rossmann Pharmaceuticals stores across various cities. The finance team requires a tool to predict sales six weeks ahead, enabling better planning and resource allocation. The solution will analyze various factors such as promotions, competition, holidays, and seasonality to provide accurate forecasts.
 
 ## Business Need
 The current sales forecasting relies on managers' experience and judgment. To enhance accuracy and consistency, a data-driven approach is essential. This project delivers a prediction system that helps analysts and managers make informed decisions.
